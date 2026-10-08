@@ -130,7 +130,7 @@ export default function HomeScreen() {
                       {budget.category_name ? `${budget.category_name} Budget` : 'Monthly Budget'}
                     </Text>
                     <Text className="text-white/50 text-xs">
-                      You've spent <Text className="text-white font-medium">{getCurrencySymbol()}{spent.toFixed(2)}</Text> of {getCurrencySymbol()}{amount.toFixed(2)}
+                      {"You've spent "}<Text className="text-white font-medium">{getCurrencySymbol()}{spent.toFixed(2)}</Text> of {getCurrencySymbol()}{amount.toFixed(2)}
                     </Text>
                   </View>
                   <Text className="text-accent text-sm font-bold">{percentage}%</Text>

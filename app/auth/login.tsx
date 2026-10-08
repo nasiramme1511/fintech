@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -16,32 +15,46 @@ import GlassPane from '../../components/GlassPane';
 import { MaterialIcons, AntDesign } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const { signIn } = useAuth();
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Validation Error', 'Please fill in all fields');
+    const trimmedEmail = email.trim();
+    setError('');
+
+    if (!trimmedEmail) {
+      setError('Please enter your email address.');
+      return;
+    }
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!password) {
+      setError('Please enter your password.');
       return;
     }
 
     setLoading(true);
-    
+
     try {
-      const result = await signIn(email, password);
-      
-      if (result.success) {
-        router.push('/(tabs)/');
-      } else {
-        Alert.alert('Login Failed', result.error || 'An error occurred');
+      const result = await signIn(trimmedEmail, password);
+
+      if (!result.success) {
+        setError(result.error || 'An error occurred.');
       }
-    } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'An unexpected error occurred');
+      // On success the auth layout detects the new session and redirects to the
+      // app, so no manual navigation is required here (avoids double navigation).
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -86,7 +99,13 @@ const LoginPage = () => {
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
+                  autoCorrect={false}
                   keyboardType="email-address"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  returnKeyType="next"
+                  accessibilityLabel="Email address"
+                  editable={!loading}
                 />
               </View>
             </View>
@@ -106,6 +125,12 @@ const LoginPage = () => {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
+                  autoComplete="current-password"
+                  textContentType="password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                  accessibilityLabel="Password"
+                  editable={!loading}
                 />
                 <TouchableOpacity 
                   className="absolute inset-y-0 right-0 pr-4 justify-center"
@@ -122,6 +147,14 @@ const LoginPage = () => {
                 <Text className="text-primary text-sm font-medium">Forgot Password?</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Error Message */}
+            {error ? (
+              <View className="flex-row items-center gap-2 bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3">
+                <MaterialIcons name="error-outline" size={18} color="#f87171" />
+                <Text className="text-red-300 text-sm font-body flex-1">{error}</Text>
+              </View>
+            ) : null}
 
             {/* Login Button */}
             <TouchableOpacity 
@@ -151,7 +184,7 @@ const LoginPage = () => {
               <Text className="text-white text-sm font-medium">Google</Text>
             </TouchableOpacity>
             <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl py-3 active:bg-white/10">
-              <AntDesign name="apple1" size={20} color="white" />
+              <AntDesign name="apple" size={20} color="white" />
               <Text className="text-white text-sm font-medium">Apple</Text>
             </TouchableOpacity>
           </View>
@@ -165,7 +198,7 @@ const LoginPage = () => {
 
           {/* Footer Sign Up */}
           <View className="mt-8 flex-row justify-center">
-            <Text className="text-white/60 text-sm font-body">Don't have an account? </Text>
+            <Text className="text-white/60 text-sm font-body">{"Don't have an account? "}</Text>
             <TouchableOpacity onPress={() => router.push('/auth/sign-up')}>
               <Text className="text-primary font-bold ml-1">Sign Up</Text>
             </TouchableOpacity>

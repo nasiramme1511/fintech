@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -16,6 +15,8 @@ import GlassPane from '../../components/GlassPane';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const SignUpPage = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -24,48 +25,67 @@ const SignUpPage = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
 
   const { signUp } = useAuth();
 
   const handleSignUp = async () => {
-    if (!name.trim()) {
-      Alert.alert('Validation Error', 'Please enter your name');
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    setError('');
+    setInfo('');
+
+    if (!trimmedName) {
+      setError('Please enter your full name.');
       return;
     }
-    if (!email.trim()) {
-      Alert.alert('Validation Error', 'Please enter your email');
+    if (trimmedName.length < 2) {
+      setError('Please enter a valid full name.');
+      return;
+    }
+    if (!trimmedEmail) {
+      setError('Please enter your email address.');
+      return;
+    }
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!password) {
+      setError('Please enter a password.');
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Validation Error', 'Password must be at least 6 characters');
+      setError('Password must be at least 6 characters.');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Validation Error', 'Passwords do not match');
+      setError('Passwords do not match.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const result = await signUp(email, password, name);
+      const result = await signUp(trimmedEmail, password, trimmedName);
 
-      if (result.success) {
-        Alert.alert(
-          'Success',
-          'Account created successfully! Please check your email to confirm your account.',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.push('/auth/login'),
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Sign Up Failed', result.error || 'An error occurred');
+      if (!result.success) {
+        setError(result.error || 'An error occurred.');
+        return;
       }
-    } catch (error: any) {
-      Alert.alert('Sign Up Failed', error.message || 'An unexpected error occurred');
+
+      if (result.needsEmailConfirmation) {
+        setInfo(
+          'Account created. Please check your inbox and verify your email before signing in.',
+        );
+        return;
+      }
+
+      // Email confirmation is disabled: the user is already signed in and the
+      // auth layout will redirect to the app. No manual navigation needed.
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -106,6 +126,11 @@ const SignUpPage = () => {
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
+                  autoComplete="name"
+                  textContentType="name"
+                  returnKeyType="next"
+                  accessibilityLabel="Full name"
+                  editable={!loading}
                 />
               </View>
             </View>
@@ -124,7 +149,13 @@ const SignUpPage = () => {
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
+                  autoCorrect={false}
                   keyboardType="email-address"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  returnKeyType="next"
+                  accessibilityLabel="Email address"
+                  editable={!loading}
                 />
               </View>
             </View>
@@ -144,6 +175,10 @@ const SignUpPage = () => {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  accessibilityLabel="Password"
+                  editable={!loading}
                 />
                 <TouchableOpacity 
                   className="absolute inset-y-0 right-0 pr-4 justify-center"
@@ -169,6 +204,12 @@ const SignUpPage = () => {
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
                   autoCapitalize="none"
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  returnKeyType="done"
+                  onSubmitEditing={handleSignUp}
+                  accessibilityLabel="Confirm password"
+                  editable={!loading}
                 />
                 <TouchableOpacity 
                   className="absolute inset-y-0 right-0 pr-4 justify-center"
@@ -178,6 +219,28 @@ const SignUpPage = () => {
                 </TouchableOpacity>
               </View>
             </View>
+
+            {/* Success / Info Message */}
+            {info ? (
+              <TouchableOpacity
+                className="flex-row items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-xl px-4 py-3"
+                onPress={() => router.replace('/auth/login')}
+                accessibilityRole="button"
+                accessibilityLabel="Go to login after confirming your email"
+              >
+                <MaterialIcons name="mark-email-read" size={18} color="#34d399" />
+                <Text className="text-emerald-300 text-sm font-body flex-1">{info}</Text>
+                <Text className="text-emerald-300 text-sm font-bold font-body">Log In</Text>
+              </TouchableOpacity>
+            ) : null}
+
+            {/* Error Message */}
+            {error ? (
+              <View className="flex-row items-center gap-2 bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3">
+                <MaterialIcons name="error-outline" size={18} color="#f87171" />
+                <Text className="text-red-300 text-sm font-body flex-1">{error}</Text>
+              </View>
+            ) : null}
 
             {/* Sign Up Button */}
             <TouchableOpacity 

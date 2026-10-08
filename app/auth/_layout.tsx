@@ -4,7 +4,13 @@ import { Redirect, Stack } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function AuthLayout() {
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
+
+  // Wait for the persisted session to be restored before deciding where to go,
+  // otherwise signed-in users briefly see the login screen on cold start.
+  if (loading) {
+    return null;
+  }
 
   // If the user is logged in, redirect to the home screen
   if (session) {

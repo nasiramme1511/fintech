@@ -1,14 +1,15 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuthStore } from '../store/authStore';
+import React, { createContext, useContext, useEffect } from 'react';
+import type { Session, User } from '@supabase/supabase-js';
+import { useAuthStore, type AuthResult } from '../store/authStore';
 
 interface AuthContextType {
-  session: any;
-  user: any;
+  session: Session | null;
+  user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string, name: string) => Promise<AuthResult>;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  forgotPassword: (email: string) => Promise<AuthResult>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
